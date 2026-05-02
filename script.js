@@ -6,117 +6,90 @@ canvas.height = window.innerHeight;
 
 let nodes = [];
 
-// camera system (this is what makes it feel like space)
-let camera = {
-  x: 0,
-  y: 0,
-  scale: 1
-};
+let camera = { x: 0, y: 0, scale: 1 };
 
-let isDragging = false;
-let dragStart = { x: 0, y: 0 };
 let draggingNode = null;
+let isPanning = false;
+let lastMouse = { x: 0, y: 0 };
+let selectedNode = null;
 
-// resize
-window.addEventListener("resize", () => {
-  canvas.width = window.innerWidth;
-  canvas.height = window.innerHeight;
-});
-
-// Node class
 class Node {
   constructor(x, y, text = "Idea") {
     this.x = x;
     this.y = y;
     this.text = text;
-    this.radius = 12;
+    this.radius = 14;
   }
 
   draw() {
-    const screenX = (this.x - camera.x) * camera.scale + canvas.width / 2;
-    const screenY = (this.y - camera.y) * camera.scale + canvas.height / 2;
+    const sx = (this.x - camera.x) * camera.scale + canvas.width / 2;
+    const sy = (this.y - camera.y) * camera.scale + canvas.height / 2;
 
     // glow
     ctx.beginPath();
     ctx.shadowBlur = 25;
-    ctx.shadowColor = "#7aa2ff";
+    ctx.shadowColor = this === selectedNode ? "#ffcc66" : "#7aa2ff";
 
-    ctx.arc(screenX, screenY, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = "#ffffff";
+    ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = this === selectedNode ? "#ffd27a" : "#ffffff";
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-    // text
     ctx.fillStyle = "#aaa";
     ctx.font = "12px Arial";
-    ctx.fillText(this.text, screenX + 15, screenY + 4);
+    ctx.fillText(this.text, sx + 15, sy + 5);
   }
 }
 
-// add node
-function addNode() {
-  nodes.push(
-    new Node(
-      (Math.random() - 0.5) * 800,
-      (Math.random() - 0.5) * 800,
-      "Idea"
-    )
-  );
+function addNode(x, y, text = "Idea") {
+  nodes.push(new Node(x, y, text));
 }
 
-// click to add node
+// click = select or create
 canvas.addEventListener("click", (e) => {
   const x = (e.clientX - canvas.width / 2) / camera.scale + camera.x;
   const y = (e.clientY - canvas.height / 2) / camera.scale + camera.y;
 
-  nodes.push(new Node(x, y, "Idea"));
-});
-
-// drag nodes
-canvas.addEventListener("mousedown", (e) => {
-  const mouseX = (e.clientX - canvas.width / 2) / camera.scale + camera.x;
-  const mouseY = (e.clientY - canvas.height / 2) / camera.scale + camera.y;
-
-  draggingNode = nodes.find(n =>
-    Math.hypot(n.x - mouseX, n.y - mouseY) < 20
+  let clicked = nodes.find(n =>
+    Math.hypot(n.x - x, n.y - y) < 18
   );
 
-  if (!draggingNode) {
-    isDragging = true;
-    dragStart.x = e.clientX;
-    dragStart.y = e.clientY;
+  if (clicked) {
+    selectedNode = clicked;
+
+    let newText = prompt("Edit idea:", clicked.text);
+    if (newText !== null) clicked.text = newText;
+
+  } else {
+    addNode(x, y);
   }
+});
+
+// pan system
+canvas.addEventListener("mousedown", (e) => {
+  lastMouse = { x: e.clientX, y: e.clientY };
+  isPanning = true;
 });
 
 canvas.addEventListener("mousemove", (e) => {
-  if (draggingNode) {
-    draggingNode.x = (e.clientX - canvas.width / 2) / camera.scale + camera.x;
-    draggingNode.y = (e.clientY - canvas.height / 2) / camera.scale + camera.y;
-  }
+  if (isPanning) {
+    camera.x -= (e.clientX - lastMouse.x) / camera.scale;
+    camera.y -= (e.clientY - lastMouse.y) / camera.scale;
 
-  if (isDragging && !draggingNode) {
-    camera.x -= (e.clientX - dragStart.x) / camera.scale;
-    camera.y -= (e.clientY - dragStart.y) / camera.scale;
-
-    dragStart.x = e.clientX;
-    dragStart.y = e.clientY;
+    lastMouse = { x: e.clientX, y: e.clientY };
   }
 });
 
 canvas.addEventListener("mouseup", () => {
-  isDragging = false;
-  draggingNode = null;
+  isPanning = false;
 });
 
 // zoom
 canvas.addEventListener("wheel", (e) => {
   e.preventDefault();
-
-  const zoomIntensity = 0.1;
-  camera.scale += e.deltaY * -zoomIntensity * 0.01;
-
-  camera.scale = Math.min(Math.max(0.3, camera.scale), 2);
+  camera.scale += e.deltaY * -0.001;
+  camera.scale = Math.min(Math.max(0.4, camera.scale), 2);
 });
 
 // connections
@@ -130,7 +103,7 @@ function drawConnections() {
 
       const dist = Math.hypot(a.x - b.x, a.y - b.y);
 
-      if (dist < 220) {
+      if (dist < 200) {
         const ax = (a.x - camera.x) * camera.scale + canvas.width / 2;
         const ay = (a.y - camera.y) * camera.scale + canvas.height / 2;
         const bx = (b.x - camera.x) * camera.scale + canvas.width / 2;
@@ -145,7 +118,6 @@ function drawConnections() {
   }
 }
 
-// animation loop
 function animate() {
   ctx.clearRect(0, 0, canvas.width, canvas.height);
 
