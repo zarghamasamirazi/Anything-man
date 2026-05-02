@@ -8,16 +8,26 @@ let nodes = [];
 
 let camera = { x: 0, y: 0, scale: 1 };
 
-let draggingNode = null;
 let isPanning = false;
 let lastMouse = { x: 0, y: 0 };
 let selectedNode = null;
 
+// 🧠 categories = brain structure
+const categories = {
+  Health: "#7aa2ff",
+  Music: "#ff7ad9",
+  Style: "#ffd27a",
+  Social: "#7affb2",
+  Work: "#b27aff",
+  Default: "#ffffff"
+};
+
 class Node {
-  constructor(x, y, text = "Idea") {
+  constructor(x, y, text = "Idea", category = "Default") {
     this.x = x;
     this.y = y;
     this.text = text;
+    this.category = category;
     this.radius = 14;
   }
 
@@ -25,28 +35,38 @@ class Node {
     const sx = (this.x - camera.x) * camera.scale + canvas.width / 2;
     const sy = (this.y - camera.y) * camera.scale + canvas.height / 2;
 
-    // glow
     ctx.beginPath();
-    ctx.shadowBlur = 25;
-    ctx.shadowColor = this === selectedNode ? "#ffcc66" : "#7aa2ff";
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = categories[this.category];
 
     ctx.arc(sx, sy, this.radius, 0, Math.PI * 2);
-    ctx.fillStyle = this === selectedNode ? "#ffd27a" : "#ffffff";
+    ctx.fillStyle = categories[this.category];
     ctx.fill();
 
     ctx.shadowBlur = 0;
 
-    ctx.fillStyle = "#aaa";
+    ctx.fillStyle = "#ddd";
     ctx.font = "12px Arial";
     ctx.fillText(this.text, sx + 15, sy + 5);
   }
 }
 
-function addNode(x, y, text = "Idea") {
-  nodes.push(new Node(x, y, text));
+// 🧠 smarter node creation
+function addNode(x, y) {
+  const name = prompt("Node name:");
+  const cat = prompt("Category (Health, Music, Style, Social, Work):");
+
+  nodes.push(
+    new Node(
+      x,
+      y,
+      name || "Idea",
+      categories[cat] ? cat : "Default"
+    )
+  );
 }
 
-// click = select or create
+// click
 canvas.addEventListener("click", (e) => {
   const x = (e.clientX - canvas.width / 2) / camera.scale + camera.x;
   const y = (e.clientY - canvas.height / 2) / camera.scale + camera.y;
@@ -57,19 +77,15 @@ canvas.addEventListener("click", (e) => {
 
   if (clicked) {
     selectedNode = clicked;
-
-    let newText = prompt("Edit idea:", clicked.text);
-    if (newText !== null) clicked.text = newText;
-
   } else {
     addNode(x, y);
   }
 });
 
-// pan system
+// pan
 canvas.addEventListener("mousedown", (e) => {
-  lastMouse = { x: e.clientX, y: e.clientY };
   isPanning = true;
+  lastMouse = { x: e.clientX, y: e.clientY };
 });
 
 canvas.addEventListener("mousemove", (e) => {
@@ -92,18 +108,26 @@ canvas.addEventListener("wheel", (e) => {
   camera.scale = Math.min(Math.max(0.4, camera.scale), 2);
 });
 
-// connections
+// 🔥 SMART CONNECTION LOGIC
+function shouldConnect(a, b) {
+  if (a.category === b.category) return true;
+
+  const dist = Math.hypot(a.x - b.x, a.y - b.y);
+  if (dist < 180) return true;
+
+  return false;
+}
+
 function drawConnections() {
-  ctx.strokeStyle = "rgba(120,160,255,0.15)";
+  ctx.strokeStyle = "rgba(150,180,255,0.2)";
+  ctx.lineWidth = 1;
 
   for (let i = 0; i < nodes.length; i++) {
     for (let j = i + 1; j < nodes.length; j++) {
       const a = nodes[i];
       const b = nodes[j];
 
-      const dist = Math.hypot(a.x - b.x, a.y - b.y);
-
-      if (dist < 200) {
+      if (shouldConnect(a, b)) {
         const ax = (a.x - camera.x) * camera.scale + canvas.width / 2;
         const ay = (a.y - camera.y) * camera.scale + canvas.height / 2;
         const bx = (b.x - camera.x) * camera.scale + canvas.width / 2;
