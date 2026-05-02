@@ -5,55 +5,88 @@ canvas.width = window.innerWidth;
 canvas.height = window.innerHeight;
 
 let nodes = [];
+let draggingNode = null;
+
+class Node {
+  constructor(x, y) {
+    this.x = x;
+    this.y = y;
+    this.radius = 10;
+    this.connections = [];
+  }
+
+  draw() {
+    // glow effect
+    ctx.beginPath();
+    ctx.shadowBlur = 20;
+    ctx.shadowColor = "#7aa2ff";
+
+    ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+    ctx.fillStyle = "#ffffff";
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+  }
+}
 
 function addNode() {
-  const x = Math.random() * canvas.width;
-  const y = Math.random() * canvas.height;
-
-  nodes.push({
-    x,
-    y,
-    text: "New Idea",
-    connections: []
-  });
+  nodes.push(new Node(
+    Math.random() * canvas.width,
+    Math.random() * canvas.height
+  ));
 }
 
 canvas.addEventListener("click", (e) => {
-  nodes.push({
-    x: e.clientX,
-    y: e.clientY,
-    text: "Idea",
-    connections: []
-  });
+  nodes.push(new Node(e.clientX, e.clientY));
 });
 
-function draw() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
+// drag system
+canvas.addEventListener("mousedown", (e) => {
+  draggingNode = nodes.find(n =>
+    Math.hypot(n.x - e.clientX, n.y - e.clientY) < 15
+  );
+});
 
-  // Draw connections
-  ctx.strokeStyle = "#ffffff30";
-  nodes.forEach(node => {
-    node.connections.forEach(i => {
-      let target = nodes[i];
-      ctx.beginPath();
-      ctx.moveTo(node.x, node.y);
-      ctx.lineTo(target.x, target.y);
-      ctx.stroke();
-    });
-  });
+canvas.addEventListener("mousemove", (e) => {
+  if (draggingNode) {
+    draggingNode.x = e.clientX;
+    draggingNode.y = e.clientY;
+  }
+});
 
-  // Draw nodes
-  nodes.forEach((node, i) => {
-    ctx.beginPath();
-    ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
-    ctx.fillStyle = "#fff";
-    ctx.fill();
+canvas.addEventListener("mouseup", () => {
+  draggingNode = null;
+});
 
-    ctx.fillStyle = "#aaa";
-    ctx.fillText(node.text, node.x + 10, node.y + 5);
-  });
+function drawConnections() {
+  ctx.strokeStyle = "rgba(120,160,255,0.2)";
+  ctx.lineWidth = 1;
 
-  requestAnimationFrame(draw);
+  for (let i = 0; i < nodes.length; i++) {
+    for (let j = i + 1; j < nodes.length; j++) {
+      const a = nodes[i];
+      const b = nodes[j];
+
+      const dist = Math.hypot(a.x - b.x, a.y - b.y);
+
+      if (dist < 180) {
+        ctx.beginPath();
+        ctx.moveTo(a.x, a.y);
+        ctx.lineTo(b.x, b.y);
+        ctx.stroke();
+      }
+    }
+  }
 }
 
-draw();
+function animate() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  drawConnections();
+
+  nodes.forEach(n => n.draw());
+
+  requestAnimationFrame(animate);
+}
+
+animate();
