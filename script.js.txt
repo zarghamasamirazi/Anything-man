@@ -1,0 +1,59 @@
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let nodes = [];
+
+function addNode() {
+  const x = Math.random() * canvas.width;
+  const y = Math.random() * canvas.height;
+
+  nodes.push({
+    x,
+    y,
+    text: "New Idea",
+    connections: []
+  });
+}
+
+canvas.addEventListener("click", (e) => {
+  nodes.push({
+    x: e.clientX,
+    y: e.clientY,
+    text: "Idea",
+    connections: []
+  });
+});
+
+function draw() {
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+  // Draw connections
+  ctx.strokeStyle = "#ffffff30";
+  nodes.forEach(node => {
+    node.connections.forEach(i => {
+      let target = nodes[i];
+      ctx.beginPath();
+      ctx.moveTo(node.x, node.y);
+      ctx.lineTo(target.x, target.y);
+      ctx.stroke();
+    });
+  });
+
+  // Draw nodes
+  nodes.forEach((node, i) => {
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, 8, 0, Math.PI * 2);
+    ctx.fillStyle = "#fff";
+    ctx.fill();
+
+    ctx.fillStyle = "#aaa";
+    ctx.fillText(node.text, node.x + 10, node.y + 5);
+  });
+
+  requestAnimationFrame(draw);
+}
+
+draw();
