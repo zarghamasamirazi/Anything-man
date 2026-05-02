@@ -1,7 +1,7 @@
 body {
   margin: 0;
   overflow: hidden;
-  background: #0b0f1a;
+  background: radial-gradient(circle at center, #0b1020, #05070f);
   font-family: Arial, sans-serif;
 }
 
@@ -18,8 +18,9 @@ canvas {
 button {
   padding: 10px 15px;
   border: none;
-  background: #ffffff20;
+  background: rgba(255,255,255,0.08);
   color: white;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
+  backdrop-filter: blur(10px);
 }
